@@ -1,23 +1,23 @@
-from f1_strategy.simulation.tire import Tire
+from f1_strategy.simulation.strategy import RaceStrategy
 from f1_strategy.simulation.track import Track
 
 
 class Race:
 
-    def __init__(self, track: Track, tire: Tire):
+    def __init__(
+        self,
+        track: Track,
+        strategy: RaceStrategy,
+    ):
         self.track = track
-        self.tire = tire
+        self.strategy = strategy
 
-    def total_race_time_seconds(self) -> float:
-        total_time = 0.0
-
-        for _ in range(self.track.number_of_laps):
-            lap_time = (
-                self.track.lap_time_seconds()
-                + self.tire.performance_delta()
+        if self.strategy.total_laps() != self.track.number_of_laps:
+            raise ValueError(
+                "Strategy lap count must match race lap count"
             )
 
-            total_time += lap_time
-            self.tire.age_one_lap()
-
-        return total_time
+    def total_race_time_seconds(self) -> float:
+        return self.strategy.total_time_seconds(
+            self.track.lap_time_seconds()
+        )
