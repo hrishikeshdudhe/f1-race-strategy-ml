@@ -1,12 +1,12 @@
-import pytest
-
+from f1_strategy.simulation.fuel import Fuel
 from f1_strategy.simulation.generator import StrategyGenerator
-from f1_strategy.simulation.tire import TireCompound
 
 
-def test_generator_creates_all_two_stint_compound_and_length_combinations():
+def test_generator_creates_expected_number_of_strategies():
 
-    generator = StrategyGenerator(6)
+    generator = StrategyGenerator(
+        number_of_laps=6,
+    )
 
     strategies = generator.generate_two_stint_strategies()
 
@@ -15,7 +15,9 @@ def test_generator_creates_all_two_stint_compound_and_length_combinations():
 
 def test_generated_strategies_cover_entire_race():
 
-    generator = StrategyGenerator(6)
+    generator = StrategyGenerator(
+        number_of_laps=6,
+    )
 
     strategies = generator.generate_two_stint_strategies()
 
@@ -25,69 +27,89 @@ def test_generated_strategies_cover_entire_race():
 
 def test_generated_strategies_have_two_stints():
 
-    generator = StrategyGenerator(6)
+    generator = StrategyGenerator(
+        number_of_laps=6,
+    )
 
     strategies = generator.generate_two_stint_strategies()
 
     for strategy in strategies:
         assert len(strategy.stints) == 2
+        assert len(strategy.pit_stops) == 1
 
 
-def test_generated_strategies_use_all_tire_compounds():
+def test_generator_can_create_fuelled_strategies():
 
-    generator = StrategyGenerator(6)
-
-    strategies = generator.generate_two_stint_strategies()
-
-    compounds = {
-        (
-            strategy.stints[0].tire.compound,
-            strategy.stints[1].tire.compound,
-        )
-        for strategy in strategies
-    }
-
-    expected = {
-        (first, second)
-        for first in TireCompound
-        for second in TireCompound
-    }
-
-    assert compounds == expected
-
-
-def test_generated_strategies_use_all_possible_stint_lengths():
-
-    generator = StrategyGenerator(6)
+    generator = StrategyGenerator(
+        number_of_laps=6,
+        initial_fuel_mass_kg=100.0,
+        fuel_consumption_per_lap_kg=2.0,
+    )
 
     strategies = generator.generate_two_stint_strategies()
 
-    splits = {
-        (
-            strategy.stints[0].number_of_laps,
-            strategy.stints[1].number_of_laps,
+    assert len(strategies) == 45
+
+    for strategy in strategies:
+        assert strategy.fuel is not None
+        assert strategy.fuel.remaining_fuel_kg() == 100.0
+
+
+def test_each_generated_strategy_has_independent_fuel():
+
+    generator = StrategyGenerator(
+        number_of_laps=6,
+        initial_fuel_mass_kg=100.0,
+        fuel_consumption_per_lap_kg=2.0,
+    )
+
+    strategies = generator.generate_two_stint_strategies()
+
+    first_strategy = strategies[0]
+    second_strategy = strategies[1]
+
+    assert first_strategy.fuel is not second_strategy.fuel
+
+    first_strategy.fuel.consume_one_lap()
+
+    assert first_strategy.fuel.remaining_fuel_kg() == 98.0
+    assert second_strategy.fuel.remaining_fuel_kg() == 100.0
+
+
+def test_generator_accepts_different_fuel_consumption():
+
+    generator = StrategyGenerator(
+        number_of_laps=6,
+        initial_fuel_mass_kg=100.0,
+        fuel_consumption_per_lap_kg=1.5,
+    )
+
+    strategies = generator.generate_two_stint_strategies()
+
+    for strategy in strategies:
+        assert strategy.fuel.consumption_per_lap_kg == 1.5
+
+
+def test_generator_rejects_invalid_initial_fuel():
+
+    try:
+        StrategyGenerator(
+            number_of_laps=6,
+            initial_fuel_mass_kg=0.0,
         )
-        for strategy in strategies
-    }
-
-    expected = {
-        (1, 5),
-        (2, 4),
-        (3, 3),
-        (4, 2),
-        (5, 1),
-    }
-
-    assert splits == expected
+        assert False
+    except ValueError:
+        assert True
 
 
-def test_generator_requires_more_than_one_lap():
+def test_generator_rejects_invalid_fuel_consumption():
 
-    with pytest.raises(ValueError):
-        StrategyGenerator(1)
-
-
-def test_generator_requires_positive_laps():
-
-    with pytest.raises(ValueError):
-        StrategyGenerator(0)
+    try:
+        StrategyGenerator(
+            number_of_laps=6,
+            initial_fuel_mass_kg=100.0,
+            fuel_consumption_per_lap_kg=0.0,
+        )
+        assert False
+    except ValueError:
+        assert True
