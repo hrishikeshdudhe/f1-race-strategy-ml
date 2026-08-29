@@ -7,7 +7,11 @@ from f1_strategy.simulation.tire import Tire, TireCompound
 def test_stint_calculates_time():
 
     tire = Tire(TireCompound.MEDIUM)
-    stint = Stint(tire, number_of_laps=3)
+
+    stint = Stint(
+        tire=tire,
+        number_of_laps=3,
+    )
 
     total_time = stint.total_time_seconds(90.0)
 
@@ -17,7 +21,11 @@ def test_stint_calculates_time():
 def test_stint_ages_tire():
 
     tire = Tire(TireCompound.MEDIUM)
-    stint = Stint(tire, number_of_laps=3)
+
+    stint = Stint(
+        tire=tire,
+        number_of_laps=3,
+    )
 
     stint.total_time_seconds(90.0)
 
@@ -29,4 +37,7 @@ def test_stint_requires_positive_laps():
     tire = Tire(TireCompound.MEDIUM)
 
     with pytest.raises(ValueError):
-        Stint(tire, number_of_laps=0)
+        Stint(
+            tire=tire,
+            number_of_laps=0,
+        )
