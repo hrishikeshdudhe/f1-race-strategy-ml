@@ -3,6 +3,7 @@ import pytest
 from f1_strategy.simulation.fuel import Fuel
 from f1_strategy.simulation.stint import Stint
 from f1_strategy.simulation.tire import Tire, TireCompound
+from f1_strategy.simulation.race_condition import RaceCondition
 
 
 def test_stint_calculates_time():
@@ -166,3 +167,80 @@ def test_lap_time_seconds_uses_current_fuel():
     assert first_lap == 92.5
     assert second_lap == 92.44
     assert second_lap < first_lap
+
+def test_green_condition_does_not_change_lap_time():
+
+    tire = Tire(TireCompound.MEDIUM)
+
+    stint = Stint(
+        tire=tire,
+        number_of_laps=1,
+        race_condition=RaceCondition.GREEN,
+    )
+
+    assert stint.lap_time_seconds(90.0) == 89.5
+
+
+def test_yellow_condition_increases_lap_time():
+
+    tire = Tire(TireCompound.MEDIUM)
+
+    stint = Stint(
+        tire=tire,
+        number_of_laps=1,
+        race_condition=RaceCondition.YELLOW,
+    )
+
+    assert stint.lap_time_seconds(90.0) == 98.45
+
+
+def test_vsc_condition_increases_lap_time_more_than_yellow():
+
+    tire_yellow = Tire(TireCompound.MEDIUM)
+
+    yellow_stint = Stint(
+        tire=tire_yellow,
+        number_of_laps=1,
+        race_condition=RaceCondition.YELLOW,
+    )
+
+    tire_vsc = Tire(TireCompound.MEDIUM)
+
+    vsc_stint = Stint(
+        tire=tire_vsc,
+        number_of_laps=1,
+        race_condition=RaceCondition.VSC,
+    )
+
+    assert (
+        vsc_stint.lap_time_seconds(90.0)
+        > yellow_stint.lap_time_seconds(90.0)
+    )
+
+
+def test_safety_car_condition_increases_lap_time():
+
+    tire = Tire(TireCompound.MEDIUM)
+
+    stint = Stint(
+        tire=tire,
+        number_of_laps=1,
+        race_condition=RaceCondition.SAFETY_CAR,
+    )
+
+    assert stint.lap_time_seconds(90.0) == pytest.approx(116.35)
+
+
+def test_race_condition_does_not_change_tire_aging():
+
+    tire = Tire(TireCompound.MEDIUM)
+
+    stint = Stint(
+        tire=tire,
+        number_of_laps=3,
+        race_condition=RaceCondition.VSC,
+    )
+
+    stint.total_time_seconds(90.0)
+
+    assert tire.age == 3
