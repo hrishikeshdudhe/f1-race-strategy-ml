@@ -3,3 +3,4 @@ Name: f1-race-strategy-ml
 Version: 0.1.0
 Summary: F1 race strategy simulation and machine learning project
 Requires-Python: >=3.10
+Requires-Dist: scikit-learn>=1.3
