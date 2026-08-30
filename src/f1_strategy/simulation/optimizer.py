@@ -4,6 +4,8 @@ from f1_strategy.simulation.race_condition_schedule import (
 )
 from f1_strategy.simulation.stint import Stint
 from f1_strategy.simulation.strategy import RaceStrategy
+from f1_strategy.simulation.strategy_result import StrategyResult
+from f1_strategy.simulation.strategy_results import StrategyResults
 
 
 class StrategyOptimizer:
@@ -22,11 +24,9 @@ class StrategyOptimizer:
         self,
         strategy: RaceStrategy,
     ) -> RaceStrategy:
-
         copied_stints = []
 
         for stint in strategy.stints:
-
             copied_tire = stint.tire.copy()
 
             copied_stints.append(
@@ -59,47 +59,121 @@ class StrategyOptimizer:
             fuel=copied_fuel,
         )
 
+    def _evaluate_strategy(
+        self,
+        strategy: RaceStrategy,
+    ) -> StrategyResult:
+        strategy_copy = self._copy_strategy(
+            strategy
+        )
+
+        time = strategy_copy.total_time_seconds(
+            self.base_lap_time,
+            self.race_condition_schedule,
+        )
+
+        return StrategyResult(
+            strategy=strategy,
+            total_time_seconds=time,
+            race_condition_schedule=(
+                self.race_condition_schedule
+            ),
+            base_lap_time=self.base_lap_time,
+        )
+
     def evaluate(
         self,
         strategies: list[RaceStrategy],
     ) -> list[tuple[RaceStrategy, float]]:
-
         results = []
 
         for strategy in strategies:
-
-            strategy_copy = self._copy_strategy(
+            result = self._evaluate_strategy(
                 strategy
             )
 
-            time = strategy_copy.total_time_seconds(
-                self.base_lap_time,
-                self.race_condition_schedule,
-            )
-
             results.append(
-                (strategy, time)
+                (
+                    strategy,
+                    result.total_time_seconds,
+                )
             )
 
         return results
 
+    def evaluate_detailed(
+        self,
+        strategies: list[RaceStrategy],
+    ) -> list[StrategyResult]:
+        return [
+            self._evaluate_strategy(strategy)
+            for strategy in strategies
+        ]
+
     def rank_strategies(
         self,
         strategies: list[RaceStrategy],
-    ) -> list[tuple[RaceStrategy, float]]:
+    ) -> list[StrategyResult]:
+        results = self.evaluate_detailed(
+            strategies
+        )
 
-        results = self.evaluate(strategies)
-
-        return sorted(
+        ranked_results = sorted(
             results,
-            key=lambda result: result[1],
+            key=lambda result: result.total_time_seconds,
+        )
+
+        if not ranked_results:
+            return []
+
+        fastest_time = (
+            ranked_results[0].total_time_seconds
+        )
+
+        for rank, result in enumerate(
+            ranked_results,
+            start=1,
+        ):
+            result.rank = rank
+
+            result.time_delta_seconds = (
+                result.total_time_seconds
+                - fastest_time
+            )
+
+        for index, result in enumerate(
+            ranked_results
+        ):
+            if index < len(ranked_results) - 1:
+                next_result = ranked_results[
+                    index + 1
+                ]
+
+                result.time_gap_to_next_seconds = (
+                    next_result.total_time_seconds
+                    - result.total_time_seconds
+                )
+            else:
+                result.time_gap_to_next_seconds = 0.0
+
+        return ranked_results
+
+    def rank_strategies_collection(
+        self,
+        strategies: list[RaceStrategy],
+    ) -> StrategyResults:
+        ranked_results = self.rank_strategies(
+            strategies
+        )
+
+        return StrategyResults(
+            ranked_results
         )
 
     def find_fastest(
         self,
         strategies: list[RaceStrategy],
     ) -> tuple[RaceStrategy, float]:
-
         if not strategies:
             raise ValueError(
                 "At least one strategy is required"
