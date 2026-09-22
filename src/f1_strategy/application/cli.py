@@ -1,13 +1,76 @@
-from f1_strategy.application import RaceStrategyApplication
+import argparse
+
+from f1_strategy.application import (
+    RaceStrategyApplication,
+    RaceStrategyApplicationConfig,
+)
 from f1_strategy.application.visualization import (
     plot_strategy_predictions,
 )
 
 
+def parse_arguments() -> argparse.Namespace:
+    """Parse command-line configuration arguments."""
+
+    parser = argparse.ArgumentParser(
+        description="Run the F1 race strategy ML application."
+    )
+
+    parser.add_argument(
+        "--laps",
+        type=int,
+        default=50,
+        help="Number of race laps.",
+    )
+
+    parser.add_argument(
+        "--base-lap-time",
+        type=float,
+        default=90.0,
+        help="Base lap time in seconds.",
+    )
+
+    parser.add_argument(
+        "--pit-stop-time",
+        type=float,
+        default=20.0,
+        help="Pit stop duration in seconds.",
+    )
+
+    parser.add_argument(
+        "--test-size",
+        type=float,
+        default=0.2,
+        help="Fraction of strategies reserved for candidates.",
+    )
+
+    parser.add_argument(
+        "--random-state",
+        type=int,
+        default=42,
+        help="Random seed used for dataset splitting and ML.",
+    )
+
+    return parser.parse_args()
+
+
 def main() -> None:
     """Run the F1 race strategy application."""
 
-    application = RaceStrategyApplication()
+    arguments = parse_arguments()
+
+    config = RaceStrategyApplicationConfig(
+        number_of_laps=arguments.laps,
+        base_lap_time=arguments.base_lap_time,
+        pit_stop_time_seconds=arguments.pit_stop_time,
+        test_size=arguments.test_size,
+        random_state=arguments.random_state,
+    )
+
+    application = RaceStrategyApplication(
+        config=config
+    )
+
     result = application.run()
 
     conditions = result.race_condition_summary
@@ -38,6 +101,10 @@ def main() -> None:
     print(
         f"Base lap time: "
         f"{application.config.base_lap_time:.1f} s"
+    )
+    print(
+        f"Pit stop time: "
+        f"{application.config.pit_stop_time_seconds:.1f} s"
     )
 
     print()

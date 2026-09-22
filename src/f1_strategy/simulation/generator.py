@@ -9,12 +9,14 @@ from f1_strategy.simulation.tire import Tire, TireCompound
 
 
 class StrategyGenerator:
+    """Generate valid race strategies."""
 
     def __init__(
         self,
         number_of_laps: int,
         initial_fuel_mass_kg: float | None = None,
         fuel_consumption_per_lap_kg: float = 2.0,
+        pit_stop_time_seconds: float = 20.0,
         constraints: StrategyConstraints | None = None,
     ):
         if number_of_laps <= 1:
@@ -38,11 +40,17 @@ class StrategyGenerator:
                     "Fuel consumption cannot exceed initial fuel mass"
                 )
 
+        if pit_stop_time_seconds < 0.0:
+            raise ValueError(
+                "Pit stop time must not be negative"
+            )
+
         self.number_of_laps = number_of_laps
         self.initial_fuel_mass_kg = initial_fuel_mass_kg
         self.fuel_consumption_per_lap_kg = (
             fuel_consumption_per_lap_kg
         )
+        self.pit_stop_time_seconds = pit_stop_time_seconds
         self.constraints = constraints
 
     def _compound_pair_is_valid(
@@ -97,7 +105,6 @@ class StrategyGenerator:
     def generate_two_stint_strategies(
         self,
     ) -> list[RaceStrategy]:
-
         strategies = []
 
         number_of_pit_stops = 1
@@ -139,7 +146,9 @@ class StrategyGenerator:
                     number_of_laps=second_stint_laps,
                 )
 
-                pit_stop = PitStop(20.0)
+                pit_stop = PitStop(
+                    self.pit_stop_time_seconds
+                )
 
                 fuel = None
 

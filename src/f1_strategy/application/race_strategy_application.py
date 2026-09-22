@@ -161,6 +161,9 @@ class RaceStrategyApplication:
 
         generator = StrategyGenerator(
             number_of_laps=self.config.number_of_laps,
+            pit_stop_time_seconds=(
+                self.config.pit_stop_time_seconds
+            ),
         )
 
         return generator.generate_two_stint_strategies()
