@@ -11,6 +11,9 @@ dependencies = [
     "scikit-learn>=1.3",
 ]
 
+[project.scripts]
+f1-strategy = "f1_strategy.application.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
