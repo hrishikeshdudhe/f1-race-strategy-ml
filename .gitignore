@@ -4,3 +4,5 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .vscode/
+strategy_predictions.png
+src/f1_race_strategy_ml.egg-info/

@@ -32,25 +32,25 @@ class RaceStrategyApplicationResult:
     candidate_strategies: int
     selection: RaceConditionStrategySelectionResult
     actual_fastest_strategy: StrategyResult
+    race_condition_schedule: RaceConditionSchedule
 
     @property
     def selected_actual_time(self) -> float:
         """Return the simulated time of the ML-selected strategy."""
 
-        return (
-            self.selection
-            .selected_strategy
-            .total_time_seconds
-        )
+        return self.selection.selected_strategy.total_time_seconds
+
+    @property
+    def selected_predicted_time(self) -> float:
+        """Return the ML-predicted time of the selected strategy."""
+
+        return self.selection.selected_prediction
 
     @property
     def actual_fastest_time(self) -> float:
         """Return the simulated time of the fastest candidate."""
 
-        return (
-            self.actual_fastest_strategy
-            .total_time_seconds
-        )
+        return self.actual_fastest_strategy.total_time_seconds
 
     @property
     def selection_gap(self) -> float:
@@ -60,6 +60,30 @@ class RaceStrategyApplicationResult:
             self.selected_actual_time
             - self.actual_fastest_time
         )
+
+    @property
+    def race_condition_summary(self) -> dict[str, int]:
+        """Return the number of laps under each race condition."""
+
+        summary = {
+            "green": 0,
+            "yellow": 0,
+            "vsc": 0,
+            "safety_car": 0,
+        }
+
+        for lap in range(
+            1,
+            self.race_condition_schedule.number_of_laps + 1,
+        ):
+            condition = (
+                self.race_condition_schedule
+                .condition_for_lap(lap)
+            )
+
+            summary[condition.label] += 1
+
+        return summary
 
 
 class RaceStrategyApplication:
@@ -144,10 +168,9 @@ class RaceStrategyApplication:
     def _evaluate_strategies(
         self,
         strategies,
+        schedule: RaceConditionSchedule,
     ) -> list[StrategyResult]:
-        """Simulate all strategies under the configured race conditions."""
-
-        schedule = self._create_race_condition_schedule()
+        """Simulate strategies under the configured race conditions."""
 
         optimizer = StrategyOptimizer(
             base_lap_time=self.config.base_lap_time,
@@ -212,7 +235,7 @@ class RaceStrategyApplication:
         feature_extractor: RaceConditionFeatureExtractor,
         candidate_strategies: list[StrategyResult],
     ) -> RaceConditionStrategySelectionResult:
-        """Select a strategy from unseen candidates using ML predictions."""
+        """Select a strategy using ML predictions."""
 
         selector = RaceConditionMLStrategySelector(
             model=model,
@@ -226,6 +249,8 @@ class RaceStrategyApplication:
     def run(self) -> RaceStrategyApplicationResult:
         """Run the complete strategy generation, simulation, and ML workflow."""
 
+        schedule = self._create_race_condition_schedule()
+
         strategies = self._generate_strategies()
 
         if not strategies:
@@ -234,7 +259,8 @@ class RaceStrategyApplication:
             )
 
         evaluated_strategies = self._evaluate_strategies(
-            strategies
+            strategies,
+            schedule,
         )
 
         training_strategies, candidate_strategies = (
@@ -269,4 +295,5 @@ class RaceStrategyApplication:
             ),
             selection=selection,
             actual_fastest_strategy=actual_fastest_strategy,
+            race_condition_schedule=schedule,
         )

@@ -1,2 +1,0 @@
-[console_scripts]
-f1-strategy = f1_strategy.application.cli:main
